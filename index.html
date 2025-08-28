@@ -1,166 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Ultimate Chaos 3D</title>
-<style>
-  body { margin:0; overflow:hidden; cursor:none; background:black; }
-  canvas { display:block; }
-</style>
+  <title>Instant Chaos</title>
+  <style>
+    body { margin:0; overflow:hidden; background:black; cursor:none; }
+    .chaos-text { position:absolute; font-family:monospace; color:white; pointer-events:none; font-size:20px; }
+    .fire { position:absolute; width:10px; height:10px; border-radius:50%; pointer-events:none; background:radial-gradient(circle, yellow, orange, red); mix-blend-mode:screen; }
+  </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/controls/OrbitControls.js"></script>
 <script>
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
-camera.position.z = 1000;
+const screenWidth = window.innerWidth;
+const screenHeight = window.innerHeight;
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Lighting
-const light = new THREE.PointLight(0xffffff,2);
-light.position.set(0,0,1000);
-scene.add(light);
-
-// 3D text setup
-const loader = new THREE.FontLoader();
-loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font){
-  const texts=[];
-  for(let i=0;i<150;i++){
-    const str=randomGibberish(3+Math.floor(Math.random()*5));
-    const geo=new THREE.TextGeometry(str,{font:font,size:30,height:5});
-    const mat=new THREE.MeshBasicMaterial({color:Math.random()*0xffffff});
-    const mesh=new THREE.Mesh(geo,mat);
-    mesh.position.set((Math.random()-0.5)*2000,(Math.random()-0.5)*2000,(Math.random()-0.5)*2000);
-    mesh.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
-    scene.add(mesh);
-    texts.push({mesh,speedX:(Math.random()-0.5)*0.05,speedY:(Math.random()-0.5)*0.05,speedZ:(Math.random()-0.5)*0.05});
-  }
-
-  function animateText(){
-    texts.forEach(t=>{
-      t.mesh.rotation.x+=t.speedX;
-      t.mesh.rotation.y+=t.speedY;
-      t.mesh.rotation.z+=t.speedZ;
-      // slowly move in random 3D space
-      t.mesh.position.x+=Math.sin(Math.random())*0.5;
-      t.mesh.position.y+=Math.cos(Math.random())*0.5;
-    });
-  }
-
-  function animate(){
-    requestAnimationFrame(animate);
-    animateText();
-    animateFire();
-    animateShapes();
-    wobbleCamera();
-    renderer.render(scene,camera);
-  }
-  animate();
-});
-
-// Gibberish generator
-function randomGibberish(len){
+function randomGibberish(len) {
   const chars='abcdefghijklmnopqrstuvwxyz';
   let str='';
   for(let i=0;i<len;i++) str+=chars[Math.floor(Math.random()*chars.length)];
   return str;
 }
 
+function createChaosText() {
+  const span = document.createElement('span');
+  span.className='chaos-text';
+  span.innerText=randomGibberish(5+Math.floor(Math.random()*5));
+  span.style.left=Math.random()*screenWidth+'px';
+  span.style.top=Math.random()*screenHeight+'px';
+  span.style.color=`hsl(${Math.random()*360},100%,50%)`;
+  document.body.appendChild(span);
+
+  const speedX=(Math.random()-0.5)*20;
+  const speedY=(Math.random()-0.5)*20;
+
+  function move(){
+    let x=parseFloat(span.style.left);
+    let y=parseFloat(span.style.top);
+    x+=speedX; y+=speedY;
+    if(x<0) x=screenWidth;
+    if(x>screenWidth) x=0;
+    if(y<0) y=screenHeight;
+    if(y>screenHeight) y=0;
+    span.style.left=x+'px';
+    span.style.top=y+'px';
+    requestAnimationFrame(move);
+  }
+  move();
+}
+
+setInterval(createChaosText, 30);
+
 // Fire cursor
 const fireParticles=[];
 document.addEventListener('mousemove', e=>{
-  window.mouseX=e.clientX;
-  window.mouseY=e.clientY;
-
   const fire=document.createElement('div');
-  fire.style.position='absolute';
-  fire.style.width='10px';
-  fire.style.height='10px';
-  fire.style.borderRadius='50%';
-  fire.style.background='radial-gradient(circle, yellow, orange, red)';
+  fire.className='fire';
   fire.style.left=e.clientX+'px';
   fire.style.top=e.clientY+'px';
-  fire.style.pointerEvents='none';
-  fire.style.mixBlendMode='screen';
   document.body.appendChild(fire);
-  fireParticles.push({el:fire,x:e.clientX,y:e.clientY,vx:(Math.random()-0.5)*20,vy:(Math.random()-0.5)*20,life:30});
-});
-
-document.addEventListener('click', e=>{
-  for(let i=0;i<70;i++){
-    const fire=document.createElement('div');
-    fire.style.position='absolute';
-    fire.style.width='10px';
-    fire.style.height='10px';
-    fire.style.borderRadius='50%';
-    fire.style.background='radial-gradient(circle, yellow, orange, red)';
-    fire.style.left=e.clientX+'px';
-    fire.style.top=e.clientY+'px';
-    fire.style.pointerEvents='none';
-    fire.style.mixBlendMode='screen';
-    document.body.appendChild(fire);
-    fireParticles.push({el:fire,x:e.clientX,y:e.clientY,vx:(Math.random()-0.5)*40,vy:(Math.random()-0.5)*40,life:50});
-  }
+  fireParticles.push({el:fire,x:e.clientX,y:e.clientY,vx:(Math.random()-0.5)*15,vy:(Math.random()-0.5)*15,life:30});
 });
 
 function animateFire(){
   for(let i=fireParticles.length-1;i>=0;i--){
     const p=fireParticles[i];
-    p.x+=p.vx;
-    p.y+=p.vy;
-    p.vx*=0.95;
-    p.vy*=0.95;
+    p.x+=p.vx; p.y+=p.vy;
+    p.vx*=0.95; p.vy*=0.95;
     p.el.style.left=p.x+'px';
     p.el.style.top=p.y+'px';
-    p.el.style.opacity=p.life/50;
+    p.el.style.opacity=p.life/30;
     p.life--;
     if(p.life<=0){p.el.remove(); fireParticles.splice(i,1);}
   }
+  requestAnimationFrame(animateFire);
 }
-
-// Random shapes in 3D
-const shapes=[];
-function animateShapes(){
-  if(Math.random()<0.05){
-    const geo=new THREE.IcosahedronGeometry(20+Math.random()*40,0);
-    const mat=new THREE.MeshBasicMaterial({color:Math.random()*0xffffff,wireframe:true});
-    const mesh=new THREE.Mesh(geo,mat);
-    mesh.position.set((Math.random()-0.5)*2000,(Math.random()-0.5)*2000,(Math.random()-0.5)*2000);
-    scene.add(mesh);
-    shapes.push({mesh,life:100});
-  }
-  for(let i=shapes.length-1;i>=0;i--){
-    const s=shapes[i];
-    s.mesh.rotation.x+=0.05;
-    s.mesh.rotation.y+=0.05;
-    s.life--;
-    if(s.life<=0){scene.remove(s.mesh); shapes.splice(i,1);}
-  }
-}
-
-// Camera wobble
-function wobbleCamera(){
-  camera.position.x=Math.sin(Date.now()*0.001)*1000;
-  camera.position.y=Math.cos(Date.now()*0.001)*1000;
-  camera.lookAt(scene.position);
-}
-
-// Background chaos
-function animateBackground(){
-  document.body.style.background=`hsl(${Math.random()*360},100%,5%)`;
-  requestAnimationFrame(animateBackground);
-}
-animateBackground();
-
-window.addEventListener('resize', ()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+animateFire();
 </script>
 </body>
 </html>
